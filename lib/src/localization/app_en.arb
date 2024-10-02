@@ -1,0 +1,8 @@
+{
+  "@@locale": "en",
+  "hello": "Hello",
+  "@hello": {
+    "description": "Greeting message"
+  },
+  "welcome": "Welcome to the app!"
+}
