@@ -6,7 +6,7 @@ import 'theme.dart';
 //import 'src/settings/settings_service.dart';
 
 void main() async {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,7 +17,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: appTheme(), // Usa el tema definido en theme.dart
-      home: const LoginView(), // Inicia con la pantalla de LoginView
+      home: const LoginView(),
+      debugShowCheckedModeBanner: false,// Inicia con la pantalla de LoginView
     );
   }
 }

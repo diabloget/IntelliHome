@@ -15,6 +15,11 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
+  image_picker: ^0.8.7+3
+  path_provider: ^2.0.11
+  mailer: ^6.2.0
+  dart_mailgun: ^1.0.3
+  http: ^0.13.4
 
 dev_dependencies:
   flutter_test:
@@ -38,4 +43,5 @@ flutter:
   assets:
     # Add assets from the images directory to the application.
     - assets/fonts/
-    - assets/images/
+    - assets/images/logo.png
+    - assets/users.json
