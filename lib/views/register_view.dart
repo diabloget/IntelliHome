@@ -6,6 +6,7 @@ import 'dart:io'; // Para trabajar con archivos
 import 'package:flutter/services.dart' show rootBundle; // Para cargar el archivo JSON
 import 'package:image_picker/image_picker.dart';
 import 'package:intellihome/views/email_service.dart';
+import 'package:intellihome/views/password_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'user_service.dart';
 import 'package:intellihome/views/email_service.dart';
@@ -23,7 +24,7 @@ class _RegisterViewState extends State<RegisterView> {
   final TextEditingController nombreController = TextEditingController();
   final TextEditingController correoController = TextEditingController();
   final TextEditingController fechaController = TextEditingController();
-
+  final TextEditingController contrasenaController = TextEditingController();
 
   // Foto de perfil seleccionada
   File? _imageFile;
@@ -70,38 +71,6 @@ class _RegisterViewState extends State<RegisterView> {
     }
   }
 
-  void _saveUser() async {
-    // Crear nuevo usuario
-    Map<String, dynamic> newUser = {
-      "alias": aliasController.text,
-      "nombre": nombreController.text,
-      "correo": correoController.text,
-      "fechaNacimiento": fechaController.text,
-      "fotoPerfil": _imageFile?.path ?? "",
-      "estilosCasa": estilosSeleccionados,
-      "tiposTransporte": transporteSeleccionados,
-      "metodoPago": {
-        "nombreTarjetahabiente": nombreTarjetahabiente,
-        "numeroTarjeta": numeroTarjeta,
-        "fechaValidez": fechaValidez,
-        "numeroVerificador": numeroVerificador
-      },
-      "rol": "",
-      "contrasena": "" // Aquí podrías agregar la lógica para solicitar la contraseña
-    };
-
-    await UserService.addUser(newUser);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuario registrado correctamente.')),
-    );
-
-    // Redirigir a la pantalla principal (LoginView)
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => LoginView()),
-    );
-  }
-
   // Función para validar si el alias o correo ya existen y las selecciones del usuario
   Future<void> validarUsuario() async {
     List<Map<String, dynamic>> users = await UserService.getUsers();
@@ -137,11 +106,12 @@ class _RegisterViewState extends State<RegisterView> {
     }
   }
 
+  int _attemptCount = 0; // Contador de reenvíos
+  int verificationAttempts = 0; // Contador de intentos de verificación
   int remainingTime = 120; // 2 minutos en segundos
-  Timer? _timer; // Asegúrate de que _timer sea una variable de clase
-  bool canResend = true; // Inicialmente, permitir reenviar el código
-  String verificationCode = ''; // Declarar la variable aquí
-  int _attemptCount = 0;
+  Timer? _timer; // Temporizador
+  bool canResend = true; // Permitir reenviar código
+  String verificationCode = ''; // Código ingresado por el usuario
 
   void _showVerificationDialog() {
     // Reiniciar el tiempo si se está mostrando el diálogo por primera vez o después de un reenvío
@@ -211,24 +181,39 @@ class _RegisterViewState extends State<RegisterView> {
               actions: <Widget>[
                 TextButton(
                   child: Text('Verificar', style: TextStyle(color: Colors.amber[200])),
-                  onPressed: () {
+                  onPressed: () async {
                     if (EmailService.verifyCode(verificationCode)) {
                       _timer?.cancel();
                       Navigator.of(context).pop();
-                      _saveUser();
+
+                      await _saveUser(withPassword: false);
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => PasswordView(alias: aliasController.text)),
+                      );
                     } else {
+                      // Incrementar el contador de intentos de verificación
+                      verificationAttempts++;
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Código incorrecto. Intente nuevamente.'),
                           backgroundColor: Colors.red,
                         ),
                       );
-                      if (_attemptCount >= 2) {
+
+                      // Si se alcanza el máximo de intentos (2)
+                      if (verificationAttempts >= 2) {
                         _timer?.cancel();
                         Navigator.of(context).pop();
+                        // Regresar a la pantalla de login
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (context) => LoginView()),
                         );
+                      } else {
+                        // Cerrar el diálogo actual y volver a abrirlo para que el usuario intente de nuevo
+                        Navigator.of(context).pop();
+                        _showVerificationDialog();
                       }
                     }
                   },
@@ -242,7 +227,7 @@ class _RegisterViewState extends State<RegisterView> {
                       bool emailSent = await EmailService.sendVerificationEmail(correoController.text);
                       if (emailSent) {
                         canResend = false;
-                        _attemptCount = 0; // Reiniciar el contador de intentos
+                        _attemptCount = 0; // Reiniciar el contador de intentos de reenvío
                         _showVerificationDialog(); // Mostrar el diálogo de nuevo
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -265,6 +250,42 @@ class _RegisterViewState extends State<RegisterView> {
       _timer = null;
     });
   }
+
+
+  Future<void> _saveUser({bool withPassword = true}) async {
+    // Crear nuevo usuario
+    Map<String, dynamic> newUser = {
+      "alias": aliasController.text,
+      "nombre": nombreController.text,
+      "correo": correoController.text,
+      "fechaNacimiento": fechaController.text,
+      "fotoPerfil": _imageFile?.path ?? "",
+      "estilosCasa": estilosSeleccionados,
+      "tiposTransporte": transporteSeleccionados,
+      "metodoPago": {
+        "nombreTarjetahabiente": nombreTarjetahabiente,
+        "numeroTarjeta": numeroTarjeta,
+        "fechaValidez": fechaValidez,
+        "numeroVerificador": numeroVerificador
+      },
+      "rol": "",
+      "contrasena": withPassword ? contrasenaController.text : "" // Solo agregar contraseña si withPassword es true
+    };
+
+    await UserService.addUser(newUser);
+
+    if (withPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario registrado correctamente.')),
+      );
+
+      // Redirigir a la pantalla principal (LoginView)
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginView()),
+      );
+    }
+  }
+
 
   // Función para seleccionar imagen desde la galería
   Future<void> _pickImage() async {

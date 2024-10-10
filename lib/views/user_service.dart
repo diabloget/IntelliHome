@@ -50,4 +50,16 @@ class UserService {
       print("Error saving users: $e");
     }
   }
+
+  static Future<void> updateUsers(List<Map<String, dynamic>> users) async {
+    try {
+      final Directory directory = await getApplicationDocumentsDirectory();
+      final File file = File('${directory.path}/users.json');
+
+      await file.writeAsString(json.encode(users));
+    } catch (e) {
+      print("Error updating users: $e");
+      throw e;
+    }
+  }
 }
