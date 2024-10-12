@@ -15,7 +15,8 @@ class AdminMenuView extends StatefulWidget {
 }
 
 class _AdminMenuViewState extends State<AdminMenuView> {
-  List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> activeUsers = [];
+  List<Map<String, dynamic>> disabledUsers = [];
   bool isAppEnabled = true;
   int _codeExpirationMinutes = 2;
 
@@ -82,9 +83,11 @@ class _AdminMenuViewState extends State<AdminMenuView> {
   }
 
   Future<void> _loadUsers() async {
-    final loadedUsers = await UserService.getUsers();
+    final loadedActiveUsers = await UserService.getActiveUsers();
+    final loadedDisabledUsers = await UserService.getDisabledUsers();
     setState(() {
-      users = loadedUsers;
+      activeUsers = loadedActiveUsers;
+      disabledUsers = loadedDisabledUsers;
     });
   }
 
@@ -143,7 +146,7 @@ class _AdminMenuViewState extends State<AdminMenuView> {
             obscureText: true,
             decoration: InputDecoration(hintText: "Nueva contraseña"),
           ),
-          backgroundColor: Colors.grey[700], // Cambiar a un color diferente
+          backgroundColor: Colors.grey[700],
           actions: <Widget>[
             TextButton(
               child: Text('Cancelar'),
@@ -169,70 +172,200 @@ class _AdminMenuViewState extends State<AdminMenuView> {
     );
   }
 
+  void _showDisableUserDialog(String alias) {
+    final TextEditingController _reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Deshabilitar Usuario'),
+          content: TextField(
+            controller: _reasonController,
+            decoration: InputDecoration(hintText: "Razón de deshabilitación"),
+          ),
+          backgroundColor: Colors.grey[700],
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Deshabilitar'),
+              onPressed: () async {
+                if (_reasonController.text.isNotEmpty) {
+                  await UserService.disableUser(alias, _reasonController.text);
+                  Navigator.of(context).pop();
+                  _loadUsers();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEnableUserDialog(String alias) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Habilitar Usuario'),
+          content: Text('¿Está seguro de que desea habilitar a este usuario?'),
+          backgroundColor: Colors.grey[700],
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Habilitar'),
+              onPressed: () async {
+                await UserService.enableUser(alias);
+                Navigator.of(context).pop();
+                _loadUsers();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Menú de Administrador'),
-        backgroundColor: kPrimaryColor,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Menú de Administrador'),
+          backgroundColor: kPrimaryColor,
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Configuración'),
+              Tab(text: 'Usuarios Activos'),
+              Tab(text: 'Usuarios Deshabilitados'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildConfigurationTab(),
+            _buildUserList(activeUsers, true),
+            _buildUserList(disabledUsers, false),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Bienvenido, Admin ${widget.alias}',
-              style: TextStyle(fontSize: 24, color: kPrimaryColor),
-            ),
-          ),
-          SwitchListTile(
-            title: Text('Habilitar/Deshabilitar Aplicación'),
-            value: isAppEnabled,
-            activeColor: kPrimaryColor, // Cambiar a azul cuando está activado
-            inactiveThumbColor: kPrimaryColor,
-            onChanged: (bool value) async {
-              await UserService.setAppEnabled(value);
-              setState(() {
-                isAppEnabled = value;
-              });
+    );
+  }
 
-            },
+  Widget _buildConfigurationTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Bienvenido, Admin ${widget.alias}',
+            style: TextStyle(fontSize: 24, color: kPrimaryColor),
           ),
-          ListTile(
-            title: Text('Tiempo de Expiración del Código'),
-            subtitle: Text('$_codeExpirationMinutes minutos'),
-            trailing: ElevatedButton(
-              onPressed: _showChangeExpirationTimeDialog,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: kAccentColor,
-                backgroundColor: kPrimaryColor,
-              ),
-              child: Text('Cambiar'),
+        ),
+        SwitchListTile(
+          title: Text('Habilitar/Deshabilitar Aplicación'),
+          value: isAppEnabled,
+          activeColor: kPrimaryColor,
+          inactiveThumbColor: kPrimaryColor,
+          onChanged: (bool value) async {
+            await UserService.setAppEnabled(value);
+            setState(() {
+              isAppEnabled = value;
+            });
+          },
+        ),
+        ListTile(
+          title: Text('Tiempo de Expiración del Código'),
+          subtitle: Text('$_codeExpirationMinutes minutos'),
+          trailing: ElevatedButton(
+            onPressed: _showChangeExpirationTimeDialog,
+            style: ElevatedButton.styleFrom(
+              foregroundColor: kAccentColor,
+              backgroundColor: kPrimaryColor,
             ),
+            child: Text('Cambiar'),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                final bool isAdmin = user['rol'] == 'Admin';
-                return ListTile(
-                  title: Text(user['alias']),
-                  subtitle: Text(user['correo']),
-                  trailing: ElevatedButton(
-                    onPressed: isAdmin ? null : () => _promoteUser(context, index),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserList(List<Map<String, dynamic>> users, bool isActiveList) {
+    return ListView.builder(
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        final user = users[index];
+        final bool isAdmin = user['rol'] == 'Admin';
+        return ListTile(
+          title: Text(user['alias']),
+          subtitle: Text(user['correo']),
+          trailing: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isActiveList && !isAdmin)
+                Flexible(
+                  child: ElevatedButton(
+                    onPressed: () => _promoteUser(context, index),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: kAccentColor,
                       backgroundColor: kPrimaryColor,
                     ),
-                    child: Text(isAdmin ? 'Administrador' : 'Promover'),
+                    child: Text('Promover'),
                   ),
+                ),
+              SizedBox(height: 8),
+              Flexible(
+                child: ElevatedButton(
+                  onPressed: isAdmin ? null : () {
+                    if (isActiveList) {
+                      _showDisableUserDialog(user['alias']);
+                    } else {
+                      _showEnableUserDialog(user['alias']);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: kAccentColor,
+                    backgroundColor: kPrimaryColor,
+                  ),
+                  child: Text(isActiveList ? 'Deshabilitar' : 'Habilitar'),
+                ),
+              ),
+            ],
+          ),
+          onTap: isActiveList ? null : () async {
+            String? reason = await UserService.getDisableReason(user['alias']);
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text('Razón de Deshabilitación'),
+                  content: Text(reason ?? 'No se proporcionó razón'),
+                  backgroundColor: Colors.grey[700],
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text('Cerrar'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
                 );
               },
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -242,7 +375,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Confirmar promoción'),
-          content: Text('¿Desea promover a ${users[index]['alias']} como Administrador?'),
+          content: Text('¿Desea promover a ${activeUsers[index]['alias']} como Administrador?'),
+          backgroundColor: Colors.grey[700],
           actions: <Widget>[
             TextButton(
               child: Text('Cancelar'),
@@ -254,10 +388,11 @@ class _AdminMenuViewState extends State<AdminMenuView> {
               child: Text('Aceptar'),
               onPressed: () async {
                 setState(() {
-                  users[index]['rol'] = 'Admin';
+                  activeUsers[index]['rol'] = 'Admin';
                 });
-                await UserService.updateUsers(users);
+                await UserService.updateUsers([...activeUsers, ...disabledUsers]);
                 Navigator.of(context).pop();
+                _loadUsers();
               },
             ),
           ],

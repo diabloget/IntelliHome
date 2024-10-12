@@ -93,4 +93,47 @@ class UserService {
       await updateLastPasswordChangeDate();
     }
   }
+  static Future<List<Map<String, dynamic>>> getActiveUsers() async {
+    List<Map<String, dynamic>> allUsers = await getUsers();
+    return allUsers.where((user) => user['estado'] != 'Deshabilitado').toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> getDisabledUsers() async {
+    List<Map<String, dynamic>> allUsers = await getUsers();
+    return allUsers.where((user) => user['estado'] == 'Deshabilitado').toList();
+  }
+
+  static Future<void> disableUser(String alias, String reason) async {
+    List<Map<String, dynamic>> users = await getUsers();
+    int userIndex = users.indexWhere((user) => user['alias'] == alias);
+    if (userIndex != -1) {
+      users[userIndex]['estado'] = 'Deshabilitado';
+      users[userIndex]['razonDeshabilitacion'] = reason;
+      await _saveUsers(users);
+      // Aquí iría la lógica para liberar las casas alquiladas por el usuario
+      // releaseRentedHouses(alias);
+    }
+  }
+
+  static Future<void> enableUser(String alias) async {
+    List<Map<String, dynamic>> users = await getUsers();
+    int userIndex = users.indexWhere((user) => user['alias'] == alias);
+    if (userIndex != -1) {
+      users[userIndex]['estado'] = 'Activo';
+      users[userIndex].remove('razonDeshabilitacion');
+      await _saveUsers(users);
+    }
+  }
+
+  static Future<String?> getDisableReason(String alias) async {
+    List<Map<String, dynamic>> users = await getUsers();
+    var user = users.firstWhere((user) => user['alias'] == alias, orElse: () => {});
+    return user['razonDeshabilitacion'];
+  }
+
+  // Función placeholder para liberar casas alquiladas
+  static Future<void> releaseRentedHouses(String alias) async {
+    // Implementar la lógica para liberar las casas alquiladas por el usuario
+    print('Liberando casas alquiladas por $alias');
+  }
 }
