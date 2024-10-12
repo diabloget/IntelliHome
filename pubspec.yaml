@@ -20,6 +20,7 @@ dependencies:
   mailer: ^6.2.0
   dart_mailgun: ^1.0.3
   http: ^0.13.4
+  shared_preferences: ^2.0.0
 
 dev_dependencies:
   flutter_test:

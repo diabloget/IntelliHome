@@ -182,7 +182,7 @@ class _RegisterViewState extends State<RegisterView> {
                 TextButton(
                   child: Text('Verificar', style: TextStyle(color: Colors.amber[200])),
                   onPressed: () async {
-                    if (EmailService.verifyCode(verificationCode)) {
+                    if (await EmailService.verifyCode(verificationCode)) {
                       _timer?.cancel();
                       Navigator.of(context).pop();
 
@@ -268,7 +268,7 @@ class _RegisterViewState extends State<RegisterView> {
         "fechaValidez": fechaValidez,
         "numeroVerificador": numeroVerificador
       },
-      "rol": "",
+      "rol": "user",
       "contrasena": withPassword ? contrasenaController.text : "" // Solo agregar contraseña si withPassword es true
     };
 

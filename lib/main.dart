@@ -6,7 +6,7 @@ import 'theme.dart';
 //import 'src/settings/settings_service.dart';
 
 void main() async {
-  runApp(const MyApp());
+  runApp(MyApp(),);
 }
 
 class MyApp extends StatelessWidget {
