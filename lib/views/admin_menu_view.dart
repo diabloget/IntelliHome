@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intellihome/views/email_service.dart';
+import 'package:intellihome/views/house_list.dart';
+import 'package:intellihome/views/house_list_admin.dart';
+import 'package:intellihome/views/house_register_view.dart';
 import 'package:intellihome/views/user_service.dart';
 
 const Color kPrimaryColor = Color(0xFF176c95);
@@ -295,6 +298,38 @@ class _AdminMenuViewState extends State<AdminMenuView> {
               backgroundColor: kPrimaryColor,
             ),
             child: Text('Cambiar'),
+          ),
+        ),
+        ListTile(
+          title: Text('Agregar Casa'),
+          trailing: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HouseReg()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              foregroundColor: kAccentColor,
+              backgroundColor: kPrimaryColor,
+            ),
+            child: Text('Agregar'),
+          ),
+        ),
+        ListTile(
+          title: Text('Ver casas'),
+          trailing: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HouseListAdmin()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              foregroundColor: kAccentColor,
+              backgroundColor: kPrimaryColor,
+            ),
+            child: Text('Ver'),
           ),
         ),
       ],

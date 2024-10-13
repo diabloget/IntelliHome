@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intellihome/views/house_list.dart';
 import 'package:intellihome/views/payment_method_view.dart';
 import 'package:intellihome/views/update_user_data_view.dart';
 
@@ -52,6 +53,19 @@ class UserMenuView extends StatelessWidget {
                 foregroundColor: kAccentColor, backgroundColor: kPrimaryColor,
               ),
               child: const Text('Método de Pago'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HouseList()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: kAccentColor, backgroundColor: kPrimaryColor,
+              ),
+              child: const Text('Ver Casas'),
             ),
             // ... Otros botones con el mismo estilo
           ],
