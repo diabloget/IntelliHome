@@ -12,18 +12,11 @@ class HouseDetail extends StatelessWidget {
       appBar: AppBar(
         title: Text("Detalles de la Casa"),
         backgroundColor: Colors.blue,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Mostrar fotos una por una
             Text(
               'Fotos',
               style: TextStyle(
@@ -57,21 +50,21 @@ class HouseDetail extends StatelessWidget {
               style: TextStyle(color: Colors.white),
             ),
             SizedBox(height: 16),
-            // Características generales
             Text(
-              'Características Generales: ${house['caracteristicas_generales']}',
+              'Capacidad: ${house['capacidad']} personas',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
-            SizedBox(height: 8),
-            // Otras características
             Text(
-              'Otras Características: ${house['otras_caracteristicas']}',
+              'Habitaciones: ${house['habitaciones']}',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            Text(
+              'Baños: ${house['banos']}',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             SizedBox(height: 16),
-            // Dispositivos (lista con scroll)
             Text(
-              'Dispositivos',
+              'Dispositivos Activos',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -79,27 +72,48 @@ class HouseDetail extends StatelessWidget {
               ),
             ),
             SizedBox(height: 8),
-            Container(
-              height: 100,
-              child: ListView.builder(
-                itemCount: house['dispositivos'].length,
-                itemBuilder: (context, index) {
-                  return Text(
-                    house['dispositivos'][index],
-                    style: TextStyle(color: Colors.white),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 16),
-            // Latitud y Longitud
-            Text(
-              'Latitud: ${house['latitud']}',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            Text(
-              'Longitud: ${house['longitud']}',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: (house['dispositivos'] as List).where((d) => d['activo']).length,
+              itemBuilder: (context, index) {
+                var device = (house['dispositivos'] as List).where((d) => d['activo']).toList()[index];
+                return ListTile(
+                  title: Text(device['nombre'], style: TextStyle(color: Colors.white)),
+                  subtitle: Text('${device['tipo']} - ${device['ubicacion']}', style: TextStyle(color: Colors.white70)),
+                  trailing: ElevatedButton(
+                    child: Text('Info'),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Información del Dispositivo'),
+                            content: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Nombre: ${device['nombre']}'),
+                                Text('Tipo: ${device['tipo']}'),
+                                Text('Ubicación: ${device['ubicacion']}'),
+                                Text('Estado: Activo'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                child: Text('Cerrar'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ],
         ),

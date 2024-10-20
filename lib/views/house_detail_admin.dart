@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'device_management.dart';
 
 class HouseDetailAdmin extends StatefulWidget {
   final int houseIndex;
@@ -15,17 +16,21 @@ class HouseDetailAdmin extends StatefulWidget {
 
 class _HouseDetailAdminState extends State<HouseDetailAdmin> {
   late TextEditingController _commentController;
+  late TextEditingController _capacidadController;
+  late TextEditingController _habitacionesController;
+  late TextEditingController _banosController;
   late List<dynamic> houses = [];
 
   @override
   void initState() {
     super.initState();
-    _commentController =
-        TextEditingController(text: widget.house['comentarios']);
+    _commentController = TextEditingController(text: widget.house['comentarios']);
+    _capacidadController = TextEditingController(text: widget.house['capacidad'].toString());
+    _habitacionesController = TextEditingController(text: widget.house['habitaciones'].toString());
+    _banosController = TextEditingController(text: widget.house['banos'].toString());
     _loadHouses();
   }
 
-  // Cargar casas desde el archivo JSON
   Future<void> _loadHouses() async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
@@ -39,7 +44,6 @@ class _HouseDetailAdminState extends State<HouseDetailAdmin> {
     }
   }
 
-  // Guardar cambios en el archivo JSON
   Future<void> _saveHouses() async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
@@ -48,7 +52,6 @@ class _HouseDetailAdminState extends State<HouseDetailAdmin> {
     await file.writeAsString(jsonEncode(houses));
   }
 
-  // Eliminar la casa actual
   void _deleteHouse() {
     setState(() {
       houses.removeAt(widget.houseIndex);
@@ -57,17 +60,33 @@ class _HouseDetailAdminState extends State<HouseDetailAdmin> {
     Navigator.pop(context);
   }
 
-  // Guardar el comentario actualizado
-  void _saveComment() {
+  void _saveChanges() {
     setState(() {
       houses[widget.houseIndex]['comentarios'] = _commentController.text;
+      houses[widget.houseIndex]['capacidad'] = int.parse(_capacidadController.text);
+      houses[widget.houseIndex]['habitaciones'] = int.parse(_habitacionesController.text);
+      houses[widget.houseIndex]['banos'] = int.parse(_banosController.text);
     });
     _saveHouses();
+  }
+
+  void _navigateToDeviceManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) =>
+              DeviceManagement(houseIndex: widget.houseIndex, house: houses[widget.houseIndex])),
+    ).then((_) {
+      _loadHouses();
+    });
   }
 
   @override
   void dispose() {
     _commentController.dispose();
+    _capacidadController.dispose();
+    _habitacionesController.dispose();
+    _banosController.dispose();
     super.dispose();
   }
 
@@ -121,17 +140,25 @@ class _HouseDetailAdminState extends State<HouseDetailAdmin> {
               style: TextStyle(color: Colors.white),
             ),
             SizedBox(height: 16),
-            Text(
-              'Capacidad: ${widget.house['capacidad']} personas',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            TextField(
+              controller: _capacidadController,
+              decoration: InputDecoration(labelText: 'Capacidad'),
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: Colors.white),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Habitaciones: ${widget.house['habitaciones']}',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            TextField(
+              controller: _habitacionesController,
+              decoration: InputDecoration(labelText: 'Habitaciones'),
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: Colors.white),
+            ),
+            TextField(
+              controller: _banosController,
+              decoration: InputDecoration(labelText: 'Baños'),
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: Colors.white),
             ),
             SizedBox(height: 16),
-            // Campo de texto para los comentarios
             Text(
               'Comentarios del Administrador',
               style: TextStyle(color: Colors.white, fontSize: 20),
@@ -149,12 +176,21 @@ class _HouseDetailAdminState extends State<HouseDetailAdmin> {
                 hintStyle: TextStyle(color: Colors.grey),
               ),
               style: TextStyle(color: Colors.white),
-              onChanged: (value) => _saveComment(),
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _saveComment,
-              child: Text("Guardar Comentario"),
+              onPressed: _saveChanges,
+              child: Text("Guardar Cambios"),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _navigateToDeviceManagement,
+              child: Text("Administrar Dispositivos IoT"),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Dispositivos IoT: ${widget.house['dispositivos'].length}',
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ],
         ),

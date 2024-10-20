@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'house_detail.dart'; // Para manejar archivos locales
+import 'house_detail.dart';
 
 class HouseList extends StatefulWidget {
   @override
@@ -18,7 +18,6 @@ class _HouseListState extends State<HouseList> {
     _loadHouses();
   }
 
-  // Función para cargar las casas desde el archivo JSON
   Future<void> _loadHouses() async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
@@ -32,9 +31,7 @@ class _HouseListState extends State<HouseList> {
     }
   }
 
-  // Navegar a la vista personalizada de una casa
-  void _navigateToHouseDetail(
-      BuildContext context, Map<String, dynamic> house) {
+  void _navigateToHouseDetail(BuildContext context, Map<String, dynamic> house) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => HouseDetail(house: house)),
@@ -59,13 +56,7 @@ class _HouseListState extends State<HouseList> {
         itemCount: houses.length,
         itemBuilder: (context, index) {
           var house = houses[index];
-
-          // Descomentar esto cuando se añada la propiedad "disponible" en el JSON
-          // if (house['disponible'] == false) return SizedBox.shrink();
-
-          String imagePath = house['fotos'].isNotEmpty
-              ? house['fotos'][0] // Usar la primera imagen como banner
-              : '';
+          String imagePath = house['fotos'].isNotEmpty ? house['fotos'][0] : '';
 
           return GestureDetector(
             onTap: () => _navigateToHouseDetail(context, house),
@@ -91,10 +82,9 @@ class _HouseListState extends State<HouseList> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.file(
                       File(imagePath),
-                      width:
-                      double.infinity, // Llenar horizontalmente
-                      height: 200, // Definir una altura fija
-                      fit: BoxFit.cover, // Que cubra sin estirarse
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
                     ),
                   )
                       : Container(
@@ -122,6 +112,10 @@ class _HouseListState extends State<HouseList> {
                   ),
                   Text(
                     'Baños: ${house['banos']}',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  Text(
+                    'Dispositivos activos: ${(house['dispositivos'] as List).where((d) => d['activo']).length}',
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],

@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'house_detail_admin.dart'; // Para manejar archivos locales
+import 'house_detail_admin.dart';
+import 'device_management.dart';
 
 class HouseListAdmin extends StatefulWidget {
   @override
@@ -18,7 +19,6 @@ class _HouseListAdminState extends State<HouseListAdmin> {
     _loadHouses();
   }
 
-  // Cargar las casas desde el archivo JSON
   Future<void> _loadHouses() async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
@@ -32,7 +32,6 @@ class _HouseListAdminState extends State<HouseListAdmin> {
     }
   }
 
-  // Guardar las casas actualizadas en el archivo JSON
   Future<void> _saveHouses() async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
@@ -41,7 +40,6 @@ class _HouseListAdminState extends State<HouseListAdmin> {
     await file.writeAsString(jsonEncode(houses));
   }
 
-  // Navegar a los detalles de una casa con opciones de administrador
   void _navigateToHouseDetailAdmin(BuildContext context, int index) {
     Navigator.push(
       context,
@@ -49,17 +47,45 @@ class _HouseListAdminState extends State<HouseListAdmin> {
           builder: (context) =>
               HouseDetailAdmin(houseIndex: index, house: houses[index])),
     ).then((_) {
-      _loadHouses(); // Recargar las casas al regresar
+      _loadHouses();
     });
   }
 
-  // Eliminar una casa
+  void _navigateToDeviceManagement(BuildContext context, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) =>
+              DeviceManagement(houseIndex: index, house: houses[index])),
+    ).then((_) {
+      _loadHouses();
+    });
+  }
+
   void _deleteHouse(int index) {
     setState(() {
       houses.removeAt(index);
     });
     _saveHouses();
   }
+
+  // Elimina la función _addNewHouse, ya que no será necesaria.
+  /*
+  void _addNewHouse() {
+    setState(() {
+      houses.add({
+        'capacidad': 0,
+        'habitaciones': 0,
+        'banos': 0,
+        'fotos': [],
+        'comentarios': '',
+        'dispositivos': [] // Inicializamos la lista de dispositivos
+      });
+    });
+    _saveHouses();
+    _navigateToHouseDetailAdmin(context, houses.length - 1);
+  }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -138,12 +164,29 @@ class _HouseListAdminState extends State<HouseListAdmin> {
                     'Baños: ${house['banos']}',
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
+                  Text(
+                    'Dispositivos IoT: ${house['dispositivos'].length}',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () => _navigateToDeviceManagement(context, index),
+                    child: Text('Administrar Dispositivos IoT'),
+                  ),
                 ],
               ),
             ),
           );
         },
       ),
+      // Comentar o eliminar el FloatingActionButton.
+      /*
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addNewHouse,
+        child: Icon(Icons.add),
+        tooltip: 'Agregar Nueva Casa',
+      ),
+      */
     );
   }
 }
