@@ -1,10 +1,81 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-class HouseDetail extends StatelessWidget {
+class HouseDetail extends StatefulWidget {
   final Map<String, dynamic> house;
+  final String alias;
+  final int houseIndex;
 
-  HouseDetail({required this.house});
+  const HouseDetail({
+    Key? key,
+    required this.house,
+    required this.alias,
+    required this.houseIndex,
+  }) : super(key: key);
+
+  @override
+  _HouseDetailState createState() => _HouseDetailState();
+}
+
+class _HouseDetailState extends State<HouseDetail> {
+  late Map<String, dynamic> _house;
+
+  @override
+  void initState() {
+    super.initState();
+    _house = Map<String, dynamic>.from(widget.house);
+  }
+
+  Future<void> _rentHouse() async {
+    setState(() {
+      _house['maestro'] = widget.alias;
+      _house['disponible'] = false;
+    });
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/casas.json';
+    File file = File(filePath);
+
+    if (await file.exists()) {
+      String content = await file.readAsString();
+      List<dynamic> houses = jsonDecode(content);
+      houses[widget.houseIndex] = _house;
+      await file.writeAsString(jsonEncode(houses));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Casa alquilada con éxito')),
+      );
+      Navigator.pop(context, true); // Pass true to indicate changes were made
+    }
+  }
+
+  Future<void> _openGoogleMaps() async {
+    final lat = _house['latitud'];
+    final lng = _house['longitud'];
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+
+    try {
+      if (await canLaunchUrlString(url)) {
+        final bool launched = await launchUrlString(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched) {
+          throw 'Could not launch $url';
+        }
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      print('Error launching URL: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al abrir Google Maps: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,40 +97,87 @@ class HouseDetail extends StatelessWidget {
               ),
             ),
             SizedBox(height: 8),
-            house['fotos'].isNotEmpty
+            _house['fotos'].isNotEmpty
                 ? Container(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: house['fotos'].length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Image.file(
-                      File(house['fotos'][index]),
-                      width: 300,
-                      height: 200,
-                      fit: BoxFit.cover,
+                    height: 200,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _house['fotos'].length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Image.file(
+                            File(_house['fotos'][index]),
+                            width: 300,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            )
+                  )
                 : Text(
-              'No hay fotos disponibles',
-              style: TextStyle(color: Colors.white),
+                    'No hay fotos disponibles',
+                    style: TextStyle(color: Colors.white),
+                  ),
+            SizedBox(height: 16),
+            Text(
+              'Capacidad: ${_house['capacidad']} personas',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            Text(
+              'Habitaciones: ${_house['habitaciones']}',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            Text(
+              'Baños: ${_house['banos']}',
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             SizedBox(height: 16),
             Text(
-              'Capacidad: ${house['capacidad']} personas',
+              'Ubicación',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Latitud: ${_house['latitud']}',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             Text(
-              'Habitaciones: ${house['habitaciones']}',
+              'Longitud: ${_house['longitud']}',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
+            ElevatedButton(
+              child: Text('Ver en Google Maps'),
+              onPressed: _openGoogleMaps,
+            ),
+            SizedBox(height: 16),
             Text(
-              'Baños: ${house['banos']}',
+              'Características Generales',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              _house['caracteristicas_generales'],
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Otras Características',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              _house['otras_caracteristicas'],
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             SizedBox(height: 16),
@@ -75,12 +193,18 @@ class HouseDetail extends StatelessWidget {
             ListView.builder(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
-              itemCount: (house['dispositivos'] as List).where((d) => d['activo']).length,
+              itemCount: (_house['dispositivos'] as List)
+                  .where((d) => d['activo'])
+                  .length,
               itemBuilder: (context, index) {
-                var device = (house['dispositivos'] as List).where((d) => d['activo']).toList()[index];
+                var device = (_house['dispositivos'] as List)
+                    .where((d) => d['activo'])
+                    .toList()[index];
                 return ListTile(
-                  title: Text(device['nombre'], style: TextStyle(color: Colors.white)),
-                  subtitle: Text('${device['tipo']} - ${device['ubicacion']}', style: TextStyle(color: Colors.white70)),
+                  title: Text(device['nombre'],
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: Text('${device['tipo']} - ${device['ubicacion']}',
+                      style: TextStyle(color: Colors.white70)),
                   trailing: ElevatedButton(
                     child: Text('Info'),
                     onPressed: () {
@@ -114,6 +238,11 @@ class HouseDetail extends StatelessWidget {
                   ),
                 );
               },
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              child: Text('Alquilar'),
+              onPressed: _house['disponible'] ? _rentHouse : null,
             ),
           ],
         ),

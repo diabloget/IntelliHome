@@ -3,7 +3,6 @@ import 'package:intellihome/views/house_list.dart';
 import 'package:intellihome/views/payment_method_view.dart';
 import 'package:intellihome/views/update_user_data_view.dart';
 
-
 // Definimos los colores como constantes
 const Color kPrimaryColor = Color(0xFF176c95); // Azul
 const Color kAccentColor = Color(0xFFede98a); // Amarillo ámbar
@@ -33,11 +32,14 @@ class UserMenuView extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => UpdateUserDataView(initialAlias: alias)),
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          UpdateUserDataView(initialAlias: alias)),
                 );
               },
               style: ElevatedButton.styleFrom(
-                foregroundColor: kAccentColor, backgroundColor: kPrimaryColor,
+                foregroundColor: kAccentColor,
+                backgroundColor: kPrimaryColor,
               ),
               child: const Text('Configuración de Datos'),
             ),
@@ -46,11 +48,13 @@ class UserMenuView extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => PaymentMethodView(alias: alias)),
+                  MaterialPageRoute(
+                      builder: (context) => PaymentMethodView(alias: alias)),
                 );
               },
               style: ElevatedButton.styleFrom(
-                foregroundColor: kAccentColor, backgroundColor: kPrimaryColor,
+                foregroundColor: kAccentColor,
+                backgroundColor: kPrimaryColor,
               ),
               child: const Text('Método de Pago'),
             ),
@@ -59,11 +63,13 @@ class UserMenuView extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => HouseList()),
+                  MaterialPageRoute(
+                      builder: (context) => HouseList(alias: alias)),
                 );
               },
               style: ElevatedButton.styleFrom(
-                foregroundColor: kAccentColor, backgroundColor: kPrimaryColor,
+                foregroundColor: kAccentColor,
+                backgroundColor: kPrimaryColor,
               ),
               child: const Text('Ver Casas'),
             ),
