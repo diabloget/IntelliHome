@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+
 const Color kAccentColor = Color(0xFFede98a); // Amarillo ámbar
 
 class DeviceManagement extends StatefulWidget {
@@ -62,21 +64,22 @@ class _DeviceManagementState extends State<DeviceManagement> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                decoration: InputDecoration(labelText: 'Nombre del dispositivo'),
+                decoration:
+                    InputDecoration(labelText: 'Nombre del dispositivo'),
                 onChanged: (value) => name = value,
-                style: TextStyle(color: Colors.black),  // Texto siempre negro
+                style: TextStyle(color: Colors.black), // Texto siempre negro
                 cursorColor: Colors.black, // Cursor negro
               ),
               TextField(
                 decoration: InputDecoration(labelText: 'Tipo de dispositivo'),
                 onChanged: (value) => type = value,
-                style: TextStyle(color: Colors.black),  // Texto siempre negro
+                style: TextStyle(color: Colors.black), // Texto siempre negro
                 cursorColor: Colors.black, // Cursor negro
               ),
               TextField(
                 decoration: InputDecoration(labelText: 'Ubicación en la casa'),
                 onChanged: (value) => location = value,
-                style: TextStyle(color: Colors.black),  // Texto siempre negro
+                style: TextStyle(color: Colors.black), // Texto siempre negro
                 cursorColor: Colors.black, // Cursor negro
               ),
             ],
@@ -106,6 +109,7 @@ class _DeviceManagementState extends State<DeviceManagement> {
       },
     );
   }
+
   void _removeDevice(int index) {
     setState(() {
       devices.removeAt(index);
@@ -121,13 +125,38 @@ class _DeviceManagementState extends State<DeviceManagement> {
   }
 
   void _configureDevice(int index) {
+    // Estado inicial del Switch, puedes definirlo como quieras
+    bool deviceState = false;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Configurar Dispositivo'),
           backgroundColor: Colors.grey[50], // Fondo gris claro
-          content: Text('Aquí iría la configuración específica para ${devices[index]['nombre']}'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              // Usar StatefulBuilder para manejar el estado del Switch
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                      'Aquí iría la configuración específica para ${devices[index]['nombre']}'),
+                  SwitchListTile(
+                    title: Text('Encender/Apagar dispositivo'),
+                    value: deviceState,
+                    onChanged: (bool value) {
+                      setState(() {
+                        deviceState = value; // Actualizar el estado local
+                      });
+                      _sendCommand(devices[index]['tipo'], value);
+                      // Aquí puedes enviar el comando según el tipo de dispositivo
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
           actions: [
             TextButton(
               child: Text('Cerrar'),
@@ -138,6 +167,37 @@ class _DeviceManagementState extends State<DeviceManagement> {
       },
     );
   }
+
+  void _sendCommand(String type, bool isOn) async {
+    int command;
+
+    // Asignar el comando dependiendo del tipo de dispositivo
+    if (type == 'LED') {
+      command = isOn ? 1 : 2; // 1 para encender, 2 para apagar
+    } else if (type == 'Motor') {
+      command = isOn ? 3 : 4; // 3 para encender, 4 para apagar
+    } else if (type == 'Alarma') {
+      command = isOn ? 5 : 6; // 5 para encender, 6 para apagar
+    } else {
+      return; // Si no es un tipo reconocido, no hacer nada
+    }
+
+    // URL del servidor (cambia 'IP_DE_TU_COMPUTADORA' por la IP real de tu computadora)
+    String serverUrl = 'http://192.168.100.2:5000/led/$command';
+
+    // Realiza la solicitud HTTP GET al servidor
+    try {
+      final response = await http.get(Uri.parse(serverUrl));
+      if (response.statusCode == 200) {
+        print("Comando enviado correctamente: $command");
+      } else {
+        print("Error al enviar comando: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error al conectar al servidor: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,8 +210,10 @@ class _DeviceManagementState extends State<DeviceManagement> {
         itemBuilder: (context, index) {
           var device = devices[index];
           return ListTile(
-            title: Text(device['nombre'], style: TextStyle(color: Colors.white)),
-            subtitle: Text('${device['tipo']} - ${device['ubicacion']}', style: TextStyle(color: Colors.white70)),
+            title:
+                Text(device['nombre'], style: TextStyle(color: Colors.white)),
+            subtitle: Text('${device['tipo']} - ${device['ubicacion']}',
+                style: TextStyle(color: Colors.white70)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

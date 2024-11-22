@@ -1,8 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart'; // Para obtener el directorio local
-import 'package:image_picker/image_picker.dart'; // Para seleccionar imágenes
+import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+
+// Creamos una clase para representar un plan de pago
+class PaymentPlan {
+  final String name;
+  double price;
+
+  PaymentPlan({required this.name, this.price = 0.0});
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'price': price,
+      };
+}
 
 class HouseReg extends StatefulWidget {
   @override
@@ -12,7 +25,7 @@ class HouseReg extends StatefulWidget {
 class _HouseRegState extends State<HouseReg> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores para los campos del formulario
+  // Controladores existentes
   TextEditingController capacidadController = TextEditingController();
   TextEditingController habitacionesController = TextEditingController();
   TextEditingController banosController = TextEditingController();
@@ -22,36 +35,45 @@ class _HouseRegState extends State<HouseReg> {
   TextEditingController latitudController = TextEditingController();
   TextEditingController longitudController = TextEditingController();
 
-  // Lista para las fotos seleccionadas
+  // Nuevos controladores para los planes de pago
+  TextEditingController mensualConServiciosController = TextEditingController();
+  TextEditingController mensualSinServiciosController = TextEditingController();
+  TextEditingController diarioConServiciosController = TextEditingController();
+
   List<String> fotos = [];
-
-  // Variable para manejar la validación de las fotos
   bool showPhotoError = false;
-
-  // Función para seleccionar fotos
   final ImagePicker _picker = ImagePicker();
+
+  // Lista de planes de pago predefinidos
+  late List<PaymentPlan> paymentPlans;
+
+  @override
+  void initState() {
+    super.initState();
+    paymentPlans = [
+      PaymentPlan(name: "Cuota mensual con servicios básicos"),
+      PaymentPlan(name: "Cuota mensual sin servicios básicos"),
+      PaymentPlan(name: "Cuota diaria con servicios básicos"),
+    ];
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         fotos.add(pickedFile.path);
-        showPhotoError =
-            false; // Resetear el mensaje de error al agregar una imagen
+        showPhotoError = false;
       });
     }
   }
 
-  // Función para eliminar una foto de la lista
   void _removeImage(String path) {
     setState(() {
       fotos.remove(path);
     });
   }
 
-  // Función para guardar la casa en un archivo JSON
   Future<void> _saveHouse() async {
-    // Verificar si hay al menos 3 fotos
     if (fotos.length < 3) {
       setState(() {
         showPhotoError = true;
@@ -59,7 +81,11 @@ class _HouseRegState extends State<HouseReg> {
       return;
     }
 
-    // Crear la casa con los datos ingresados
+    // Actualizar los precios de los planes
+    paymentPlans[0].price = double.parse(mensualConServiciosController.text);
+    paymentPlans[1].price = double.parse(mensualSinServiciosController.text);
+    paymentPlans[2].price = double.parse(diarioConServiciosController.text);
+
     Map<String, dynamic> newHouse = {
       "capacidad": int.parse(capacidadController.text),
       "habitaciones": int.parse(habitacionesController.text),
@@ -69,44 +95,45 @@ class _HouseRegState extends State<HouseReg> {
       "latitud": double.parse(latitudController.text),
       "longitud": double.parse(longitudController.text),
       "fotos": fotos,
-      "disponible": true, // Por defecto en verdadero
-      "dispositivos": [], // Lista vacía de dispositivos
-      "comentarios": "", // Cadena vacía
-      "historial": [], // Lista vacía
+      "disponible": true,
+      "dispositivos": [],
+      "comentarios": "",
+      "historial": [],
       "reservaciones": [],
+      "planes": paymentPlans.map((plan) => plan.toJson()).toList(),
     };
 
-    // Obtener el directorio local y crear el archivo si no existe
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
     File file = File(filePath);
 
     List<dynamic> casas = [];
-
     if (await file.exists()) {
       String content = await file.readAsString();
       casas = jsonDecode(content);
     }
 
-    // Agregar la nueva casa a la lista de casas
     casas.add(newHouse);
-
-    // Guardar la lista de casas en el archivo
     await file.writeAsString(jsonEncode(casas));
 
-    // Mostrar un mensaje de éxito
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('Casa guardada con éxito')));
 
-    // Limpiar el formulario después de guardar
     _formKey.currentState!.reset();
-    capacidadController.clear();
-    habitacionesController.clear();
-    banosController.clear();
-    caracteristicasController.clear();
-    otrasCaracteristicasController.clear();
-    latitudController.clear();
-    longitudController.clear();
+    // Limpiar todos los controladores...
+    [
+      capacidadController,
+      habitacionesController,
+      banosController,
+      caracteristicasController,
+      otrasCaracteristicasController,
+      latitudController,
+      longitudController,
+      mensualConServiciosController,
+      mensualSinServiciosController,
+      diarioConServiciosController,
+    ].forEach((controller) => controller.clear());
+
     setState(() {
       fotos.clear();
     });
@@ -117,7 +144,7 @@ class _HouseRegState extends State<HouseReg> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Agregar Casa"),
-        backgroundColor: Colors.blue, // Fondo oscuro
+        backgroundColor: Colors.blue,
       ),
       body: Form(
         key: _formKey,
@@ -229,6 +256,66 @@ class _HouseRegState extends State<HouseReg> {
                     validator: (value) {
                       if (value!.isEmpty) {
                         return "Por favor ingrese la longitud";
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Planes de Pago",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+
+                  TextFormField(
+                    controller: mensualConServiciosController,
+                    decoration: InputDecoration(
+                      labelText: "Precio mensual con servicios (USD)",
+                      labelStyle: TextStyle(color: Colors.white),
+                    ),
+                    style: TextStyle(color: Colors.white),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor ingrese el precio mensual con servicios";
+                      }
+                      return null;
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: mensualSinServiciosController,
+                    decoration: InputDecoration(
+                      labelText: "Precio mensual sin servicios (USD)",
+                      labelStyle: TextStyle(color: Colors.white),
+                    ),
+                    style: TextStyle(color: Colors.white),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor ingrese el precio mensual sin servicios";
+                      }
+                      return null;
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: diarioConServiciosController,
+                    decoration: InputDecoration(
+                      labelText: "Precio diario con servicios (USD)",
+                      labelStyle: TextStyle(color: Colors.white),
+                    ),
+                    style: TextStyle(color: Colors.white),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor ingrese el precio diario con servicios";
                       }
                       return null;
                     },
