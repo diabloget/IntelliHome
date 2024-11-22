@@ -18,7 +18,7 @@ class _HouseRegState extends State<HouseReg> {
   TextEditingController banosController = TextEditingController();
   TextEditingController caracteristicasController = TextEditingController();
   TextEditingController otrasCaracteristicasController =
-  TextEditingController();
+      TextEditingController();
   TextEditingController latitudController = TextEditingController();
   TextEditingController longitudController = TextEditingController();
 
@@ -37,7 +37,7 @@ class _HouseRegState extends State<HouseReg> {
       setState(() {
         fotos.add(pickedFile.path);
         showPhotoError =
-        false; // Resetear el mensaje de error al agregar una imagen
+            false; // Resetear el mensaje de error al agregar una imagen
       });
     }
   }
@@ -70,11 +70,10 @@ class _HouseRegState extends State<HouseReg> {
       "longitud": double.parse(longitudController.text),
       "fotos": fotos,
       "disponible": true, // Por defecto en verdadero
-      "maestro": null, // Actualmente sin usuario asignado
-      "asociado": null, // Actualmente sin usuario asociado
       "dispositivos": [], // Lista vacía de dispositivos
       "comentarios": "", // Cadena vacía
       "historial": [], // Lista vacía
+      "reservaciones": [],
     };
 
     // Obtener el directorio local y crear el archivo si no existe
@@ -209,7 +208,7 @@ class _HouseRegState extends State<HouseReg> {
                     ),
                     style: TextStyle(color: Colors.white),
                     keyboardType:
-                    TextInputType.numberWithOptions(decimal: true),
+                        TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return "Por favor ingrese la latitud";
@@ -226,7 +225,7 @@ class _HouseRegState extends State<HouseReg> {
                     ),
                     style: TextStyle(color: Colors.white),
                     keyboardType:
-                    TextInputType.numberWithOptions(decimal: true),
+                        TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return "Por favor ingrese la longitud";
@@ -270,7 +269,7 @@ class _HouseRegState extends State<HouseReg> {
                                 .split('/')
                                 .last, // Mostrar solo el nombre de la imagen
                             style:
-                            TextStyle(color: Colors.white), // Texto blanco
+                                TextStyle(color: Colors.white), // Texto blanco
                           ),
                           trailing: IconButton(
                             icon: Icon(Icons.delete, color: Colors.red),

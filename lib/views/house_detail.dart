@@ -23,6 +23,7 @@ class HouseDetail extends StatefulWidget {
 
 class _HouseDetailState extends State<HouseDetail> {
   late Map<String, dynamic> _house;
+  DateTimeRange? _selectedDateRange;
 
   @override
   void initState() {
@@ -30,12 +31,150 @@ class _HouseDetailState extends State<HouseDetail> {
     _house = Map<String, dynamic>.from(widget.house);
   }
 
+  bool _isDayAvailable(DateTime day) {
+    // Don't allow past dates
+    if (day.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
+      return false;
+    }
+
+    // If there are no reservations, all future dates are available
+    if (_house['reservaciones'] == null || _house['reservaciones'].isEmpty) {
+      return true;
+    }
+
+    // Convert the day to start of day for accurate comparison
+    final date = DateTime(day.year, day.month, day.day);
+
+    // Check if this date falls within any existing reservation
+    for (var reservation in _house['reservaciones']) {
+      DateTime startDate = DateTime.parse(reservation['startDate']);
+      DateTime endDate = DateTime.parse(reservation['endDate']);
+
+      // Convert reservation dates to start of day for accurate comparison
+      startDate = DateTime(startDate.year, startDate.month, startDate.day);
+      endDate = DateTime(endDate.year, endDate.month, endDate.day);
+
+      if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+        return false; // Date is not available
+      }
+    }
+    return true; // Date is available
+  }
+
+  bool _isDateRangeAvailable(DateTimeRange range) {
+    // Check each day in the range
+    for (var date = range.start;
+        date.isBefore(range.end.add(const Duration(days: 1)));
+        date = date.add(const Duration(days: 1))) {
+      if (!_isDayAvailable(date)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _selectDateRange() async {
+    final now = DateTime.now();
+    final lastDate = now.add(const Duration(days: 365));
+
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: now,
+      lastDate: lastDate,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              surface: Colors.blueGrey,
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: Colors.blueGrey[900],
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      if (_isDateRangeAvailable(picked)) {
+        setState(() {
+          _selectedDateRange = picked;
+        });
+        _showConfirmationDialog();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('El rango de fechas seleccionado no está disponible'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showConfirmationDialog() {
+    if (_selectedDateRange == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirmar Reservación'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Fechas seleccionadas:'),
+              Text(
+                  'Desde: ${_selectedDateRange!.start.toString().split(' ')[0]}'),
+              Text(
+                  'Hasta: ${_selectedDateRange!.end.toString().split(' ')[0]}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Confirmar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _rentHouse();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _rentHouse() async {
+    if (_selectedDateRange == null) return;
+
+    // Nueva reservación
+    Map<String, dynamic> newReservation = {
+      'startDate': _selectedDateRange!.start.toString().split(' ')[0],
+      'endDate': _selectedDateRange!.end.toString().split(' ')[0],
+      'maestro': widget.alias,
+      'asociado': widget.alias,
+    };
+
     setState(() {
-      _house['maestro'] = widget.alias;
-      _house['disponible'] = false;
+      if (_house['reservaciones'] == null) {
+        _house['reservaciones'] = [];
+      }
+      _house['reservaciones'].add(newReservation);
     });
 
+    // Obtener el archivo JSON
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/casas.json';
     File file = File(filePath);
@@ -43,12 +182,16 @@ class _HouseDetailState extends State<HouseDetail> {
     if (await file.exists()) {
       String content = await file.readAsString();
       List<dynamic> houses = jsonDecode(content);
-      houses[widget.houseIndex] = _house;
-      await file.writeAsString(jsonEncode(houses));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Casa alquilada con éxito')),
-      );
-      Navigator.pop(context, true); // Pass true to indicate changes were made
+
+      // Verificar y actualizar solo las reservas de la casa especificada
+      if (houses[widget.houseIndex] != null) {
+        houses[widget.houseIndex]['reservaciones'] = _house['reservaciones'];
+        await file.writeAsString(jsonEncode(houses));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reservación realizada con éxito')),
+        );
+        Navigator.pop(context, true);
+      }
     }
   }
 
@@ -241,9 +384,38 @@ class _HouseDetailState extends State<HouseDetail> {
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              child: Text('Alquilar'),
-              onPressed: _house['disponible'] ? _rentHouse : null,
+              child: Text('Reservar'),
+              onPressed: _selectDateRange,
             ),
+            if (_house['reservaciones']?.isNotEmpty ?? false) ...[
+              SizedBox(height: 16),
+              Text(
+                'Reservaciones Existentes',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: _house['reservaciones'].length,
+                itemBuilder: (context, index) {
+                  var reservation = _house['reservaciones'][index];
+                  return ListTile(
+                    title: Text(
+                      'Reservado por: ${reservation['maestro']}',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      'Desde: ${reservation['startDate']} - Hasta: ${reservation['endDate']}',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
