@@ -4,6 +4,7 @@ import 'package:intellihome/views/house_list.dart';
 import 'package:intellihome/views/house_list_admin.dart';
 import 'package:intellihome/views/house_register_view.dart';
 import 'package:intellihome/views/user_service.dart';
+import 'package:intellihome/views/admin_report.dart';
 
 const Color kPrimaryColor = Color(0xFF176c95);
 const Color kAccentColor = Color(0xFFede98a);
@@ -40,7 +41,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
   }
 
   void _showChangeExpirationTimeDialog() {
-    final TextEditingController _timeController = TextEditingController(text: _codeExpirationMinutes.toString());
+    final TextEditingController _timeController =
+        TextEditingController(text: _codeExpirationMinutes.toString());
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -74,7 +76,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, ingrese un número válido')),
+                    SnackBar(
+                        content: Text('Por favor, ingrese un número válido')),
                   );
                 }
               },
@@ -115,7 +118,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Recordatorio de Seguridad'),
-          content: Text('Es recomendable cambiar su contraseña. ¿Desea hacerlo ahora?'),
+          content: Text(
+              'Es recomendable cambiar su contraseña. ¿Desea hacerlo ahora?'),
           backgroundColor: Colors.grey[700],
           actions: <Widget>[
             TextButton(
@@ -161,7 +165,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
               child: Text('Guardar'),
               onPressed: () async {
                 if (_passwordController.text.isNotEmpty) {
-                  await UserService.changeAdminPassword(_passwordController.text);
+                  await UserService.changeAdminPassword(
+                      _passwordController.text);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Contraseña cambiada exitosamente')),
@@ -332,6 +337,23 @@ class _AdminMenuViewState extends State<AdminMenuView> {
             child: Text('Ver'),
           ),
         ),
+        // Nueva opción para ver casas alquiladas
+        ListTile(
+          title: Text('Ver Casas Alquiladas'),
+          trailing: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AdminRentalsView()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              foregroundColor: kAccentColor,
+              backgroundColor: kPrimaryColor,
+            ),
+            child: Text('Ver Alquileres'),
+          ),
+        ),
       ],
     );
   }
@@ -362,13 +384,15 @@ class _AdminMenuViewState extends State<AdminMenuView> {
               SizedBox(height: 8),
               Flexible(
                 child: ElevatedButton(
-                  onPressed: isAdmin ? null : () {
-                    if (isActiveList) {
-                      _showDisableUserDialog(user['alias']);
-                    } else {
-                      _showEnableUserDialog(user['alias']);
-                    }
-                  },
+                  onPressed: isAdmin
+                      ? null
+                      : () {
+                          if (isActiveList) {
+                            _showDisableUserDialog(user['alias']);
+                          } else {
+                            _showEnableUserDialog(user['alias']);
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     foregroundColor: kAccentColor,
                     backgroundColor: kPrimaryColor,
@@ -378,27 +402,30 @@ class _AdminMenuViewState extends State<AdminMenuView> {
               ),
             ],
           ),
-          onTap: isActiveList ? null : () async {
-            String? reason = await UserService.getDisableReason(user['alias']);
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Text('Razón de Deshabilitación'),
-                  content: Text(reason ?? 'No se proporcionó razón'),
-                  backgroundColor: Colors.grey[700],
-                  actions: <Widget>[
-                    TextButton(
-                      child: Text('Cerrar'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+          onTap: isActiveList
+              ? null
+              : () async {
+                  String? reason =
+                      await UserService.getDisableReason(user['alias']);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text('Razón de Deshabilitación'),
+                        content: Text(reason ?? 'No se proporcionó razón'),
+                        backgroundColor: Colors.grey[700],
+                        actions: <Widget>[
+                          TextButton(
+                            child: Text('Cerrar'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
         );
       },
     );
@@ -410,7 +437,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Confirmar promoción'),
-          content: Text('¿Desea promover a ${activeUsers[index]['alias']} como Administrador?'),
+          content: Text(
+              '¿Desea promover a ${activeUsers[index]['alias']} como Administrador?'),
           backgroundColor: Colors.grey[700],
           actions: <Widget>[
             TextButton(
@@ -425,7 +453,8 @@ class _AdminMenuViewState extends State<AdminMenuView> {
                 setState(() {
                   activeUsers[index]['rol'] = 'Admin';
                 });
-                await UserService.updateUsers([...activeUsers, ...disabledUsers]);
+                await UserService.updateUsers(
+                    [...activeUsers, ...disabledUsers]);
                 Navigator.of(context).pop();
                 _loadUsers();
               },

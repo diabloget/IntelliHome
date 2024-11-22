@@ -69,24 +69,6 @@ class _HouseListAdminState extends State<HouseListAdmin> {
     _saveHouses();
   }
 
-  // Elimina la función _addNewHouse, ya que no será necesaria.
-  /*
-  void _addNewHouse() {
-    setState(() {
-      houses.add({
-        'capacidad': 0,
-        'habitaciones': 0,
-        'banos': 0,
-        'fotos': [],
-        'comentarios': '',
-        'dispositivos': [] // Inicializamos la lista de dispositivos
-      });
-    });
-    _saveHouses();
-    _navigateToHouseDetailAdmin(context, houses.length - 1);
-  }
-  */
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,89 +78,90 @@ class _HouseListAdminState extends State<HouseListAdmin> {
       ),
       body: houses.isEmpty
           ? Center(
-        child: Text(
-          "No hay casas disponibles",
-          style: TextStyle(color: Colors.white),
-        ),
-      )
+              child: Text(
+                "No hay casas disponibles",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
           : ListView.builder(
-        itemCount: houses.length,
-        itemBuilder: (context, index) {
-          var house = houses[index];
-          String imagePath =
-          house['fotos'].isNotEmpty ? house['fotos'][0] : '';
+              itemCount: houses.length,
+              itemBuilder: (context, index) {
+                var house = houses[index];
+                String imagePath =
+                    house['fotos'].isNotEmpty ? house['fotos'][0] : '';
 
-          return GestureDetector(
-            onTap: () => _navigateToHouseDetailAdmin(context, index),
-            child: Container(
-              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[850],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  imagePath.isNotEmpty
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      File(imagePath),
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
+                return GestureDetector(
+                  onTap: () => _navigateToHouseDetailAdmin(context, index),
+                  child: Container(
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[850],
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
                     ),
-                  )
-                      : Container(
-                    width: double.infinity,
-                    height: 200,
-                    color: Colors.grey[800],
-                    child: Icon(
-                      Icons.image,
-                      color: Colors.grey[400],
-                      size: 100,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        imagePath.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(imagePath),
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Container(
+                                width: double.infinity,
+                                height: 200,
+                                color: Colors.grey[800],
+                                child: Icon(
+                                  Icons.image,
+                                  color: Colors.grey[400],
+                                  size: 100,
+                                ),
+                              ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Capacidad: ${house['capacidad']} personas',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Habitaciones: ${house['habitaciones']}',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        Text(
+                          'Baños: ${house['banos']}',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        Text(
+                          'Dispositivos IoT: ${house['dispositivos'].length}',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () =>
+                              _navigateToDeviceManagement(context, index),
+                          child: Text('Administrar Dispositivos IoT'),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Capacidad: ${house['capacidad']} personas',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Habitaciones: ${house['habitaciones']}',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  Text(
-                    'Baños: ${house['banos']}',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  Text(
-                    'Dispositivos IoT: ${house['dispositivos'].length}',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () => _navigateToDeviceManagement(context, index),
-                    child: Text('Administrar Dispositivos IoT'),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
       // Comentar o eliminar el FloatingActionButton.
       /*
       floatingActionButton: FloatingActionButton(
