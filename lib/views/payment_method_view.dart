@@ -15,6 +15,9 @@ class _PaymentMethodViewState extends State<PaymentMethodView> {
   late TextEditingController numeroTarjetaController;
   late TextEditingController fechaValidezController;
   late TextEditingController numeroVerificadorController;
+  String tarjetaTipo = '';
+  List<Map<String, dynamic>> paymentMethods = [];
+  int? editingIndex;
 
   @override
   void initState() {
@@ -23,19 +26,25 @@ class _PaymentMethodViewState extends State<PaymentMethodView> {
     numeroTarjetaController = TextEditingController();
     fechaValidezController = TextEditingController();
     numeroVerificadorController = TextEditingController();
-    _loadCurrentPaymentMethod();
+    numeroTarjetaController.addListener(() {
+      setState(() {
+        tarjetaTipo = _getCardType(numeroTarjetaController.text);
+      });
+    });
+    _loadCurrentPaymentMethods();
   }
 
-  Future<void> _loadCurrentPaymentMethod() async {
+  Future<void> _loadCurrentPaymentMethods() async {
     List<Map<String, dynamic>> users = await UserService.getUsers();
-    Map<String, dynamic>? currentUser = users.firstWhere((user) => user['alias'] == widget.alias, orElse: () => {});
+    Map<String, dynamic>? currentUser = users.firstWhere(
+          (user) => user['alias'] == widget.alias,
+      orElse: () => {},
+    );
 
     if (currentUser != null && currentUser['metodoPago'] != null) {
       setState(() {
-        nombreTarjetahabienteController.text = currentUser['metodoPago']['nombreTarjetahabiente'] ?? '';
-        numeroTarjetaController.text = currentUser['metodoPago']['numeroTarjeta'] ?? '';
-        fechaValidezController.text = currentUser['metodoPago']['fechaValidez'] ?? '';
-        numeroVerificadorController.text = currentUser['metodoPago']['numeroVerificador'] ?? '';
+        paymentMethods = List<Map<String, dynamic>>.from(
+            currentUser['metodoPago'] ?? []);
       });
     }
   }
@@ -65,23 +74,80 @@ class _PaymentMethodViewState extends State<PaymentMethodView> {
       return;
     }
 
-    // Actualizar el método de pago
+    // Si estamos editando un método de pago
+    if (editingIndex != null) {
+      setState(() {
+        paymentMethods[editingIndex!] = {
+          'nombreTarjetahabiente': nombreTarjetahabienteController.text,
+          'numeroTarjeta': numeroTarjetaController.text,
+          'fechaValidez': fechaValidezController.text,
+          'numeroVerificador': numeroVerificadorController.text,
+        };
+      });
+      _showSuccessSnackBar('Método de pago actualizado correctamente.');
+    } else {
+      // Agregar un nuevo método de pago
+      setState(() {
+        paymentMethods.add({
+          'nombreTarjetahabiente': nombreTarjetahabienteController.text,
+          'numeroTarjeta': numeroTarjetaController.text,
+          'fechaValidez': fechaValidezController.text,
+          'numeroVerificador': numeroVerificadorController.text,
+        });
+        _showSuccessSnackBar('Método de pago agregado correctamente.');
+      });
+    }
+
+    // Actualizar los métodos de pago en el servicio
     List<Map<String, dynamic>> users = await UserService.getUsers();
     int userIndex = users.indexWhere((user) => user['alias'] == widget.alias);
 
     if (userIndex != -1) {
-      users[userIndex]['metodoPago'] = {
-        'nombreTarjetahabiente': nombreTarjetahabienteController.text,
-        'numeroTarjeta': numeroTarjetaController.text,
-        'fechaValidez': fechaValidezController.text,
-        'numeroVerificador': numeroVerificadorController.text,
-      };
-
+      users[userIndex]['metodoPago'] = paymentMethods;
       await UserService.updateUsers(users);
-      _showSuccessSnackBar('Método de pago actualizado correctamente.');
     } else {
       _showErrorSnackBar('No se pudo encontrar el usuario para actualizar el método de pago.');
     }
+
+    // Limpiar el formulario y cancelar la edición
+    _clearForm();
+  }
+
+  void _deletePaymentMethod(int index) async {
+    setState(() {
+      paymentMethods.removeAt(index);
+    });
+
+    // Actualizar los métodos de pago en el servicio
+    List<Map<String, dynamic>> users = await UserService.getUsers();
+    int userIndex = users.indexWhere((user) => user['alias'] == widget.alias);
+
+    if (userIndex != -1) {
+      users[userIndex]['metodoPago'] = paymentMethods;
+      await UserService.updateUsers(users);
+      _showSuccessSnackBar('Método de pago eliminado correctamente.');
+    } else {
+      _showErrorSnackBar('No se pudo encontrar el usuario para actualizar el método de pago.');
+    }
+  }
+
+  void _editPaymentMethod(int index) {
+    setState(() {
+      var method = paymentMethods[index];
+      nombreTarjetahabienteController.text = method['nombreTarjetahabiente'];
+      numeroTarjetaController.text = method['numeroTarjeta'];
+      fechaValidezController.text = method['fechaValidez'];
+      numeroVerificadorController.text = method['numeroVerificador'];
+      editingIndex = index;
+    });
+  }
+
+  void _clearForm() {
+    nombreTarjetahabienteController.clear();
+    numeroTarjetaController.clear();
+    fechaValidezController.clear();
+    numeroVerificadorController.clear();
+    editingIndex = null;
   }
 
   void _showErrorSnackBar(String message) {
@@ -96,11 +162,27 @@ class _PaymentMethodViewState extends State<PaymentMethodView> {
     );
   }
 
+  String _getCardType(String cardNumber) {
+    String firstDigit = cardNumber.isNotEmpty ? cardNumber[0] : '';
+    switch (firstDigit) {
+      case '1':
+        return 'Visa';
+      case '2':
+        return 'MasterCard';
+      case '3':
+        return 'American Express';
+      case '5':
+        return 'TicaPay';
+      default:
+        return 'Unknown';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cambiar Método de Pago'),
+        title: const Text('Métodos de Pago'),
         backgroundColor: Theme.of(context).colorScheme.secondary,
       ),
       body: SingleChildScrollView(
@@ -168,23 +250,46 @@ class _PaymentMethodViewState extends State<PaymentMethodView> {
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 20),
+              // Muestra la tarjeta tipo debajo de todos los campos
+              if (tarjetaTipo.isNotEmpty)
+                Text(
+                  'Tipo de Tarjeta: $tarjetaTipo',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _updatePaymentMethod,
-                child: const Text('Actualizar Método de Pago'),
+                child: Text(editingIndex == null ? 'Agregar Método de Pago' : 'Actualizar Método de Pago'),
+              ),
+              const SizedBox(height: 20),
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: paymentMethods.length,
+                itemBuilder: (context, index) {
+                  var method = paymentMethods[index];
+                  return ListTile(
+                    title: Text('${method['nombreTarjetahabiente']} - ${method['numeroTarjeta']}'),
+                    subtitle: Text('Validez: ${method['fechaValidez']}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _editPaymentMethod(index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deletePaymentMethod(index),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    nombreTarjetahabienteController.dispose();
-    numeroTarjetaController.dispose();
-    fechaValidezController.dispose();
-    numeroVerificadorController.dispose();
-    super.dispose();
   }
 }

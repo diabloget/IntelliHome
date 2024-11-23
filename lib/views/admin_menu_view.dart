@@ -3,6 +3,7 @@ import 'package:intellihome/views/email_service.dart';
 import 'package:intellihome/views/house_list.dart';
 import 'package:intellihome/views/house_list_admin.dart';
 import 'package:intellihome/views/house_register_view.dart';
+import 'package:intellihome/views/update_user_data_view.dart';
 import 'package:intellihome/views/user_service.dart';
 import 'package:intellihome/views/admin_report.dart';
 
@@ -280,6 +281,22 @@ class _AdminMenuViewState extends State<AdminMenuView> {
             'Bienvenido, Admin ${widget.alias}',
             style: TextStyle(fontSize: 24, color: kPrimaryColor),
           ),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      UpdateUserDataView(initialAlias: widget.alias)),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            foregroundColor: kAccentColor,
+            backgroundColor: kPrimaryColor,
+          ),
+          child: const Text('Configuración de Datos'),
         ),
         SwitchListTile(
           title: Text('Habilitar/Deshabilitar Aplicación'),

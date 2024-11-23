@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intellihome/views/user_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,11 +16,19 @@ import 'package:url_launcher/url_launcher_string.dart';
 class PaymentPlanSelector extends StatefulWidget {
   final List<dynamic> plans;
   final DateTimeRange dateRange;
+  final String alias;
+  final Function(int) onPlanSelected;
+  final Function(int) onPaymentMethodSelected;
+  final bool showPaymentMethods; // Nuevo parámetro
 
   const PaymentPlanSelector({
     Key? key,
     required this.plans,
     required this.dateRange,
+    required this.alias,
+    required this.onPlanSelected,
+    required this.onPaymentMethodSelected,
+    required this.showPaymentMethods, // Nuevo parámetro
   }) : super(key: key);
 
   @override
@@ -28,32 +37,54 @@ class PaymentPlanSelector extends StatefulWidget {
 
 class _PaymentPlanSelectorState extends State<PaymentPlanSelector> {
   int? selectedPlanIndex;
+  int? selectedPaymentMethodIndex;
   double total = 0.0;
+  List<Map<String, dynamic>> paymentMethods = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    List<Map<String, dynamic>> users = await UserService.getUsers();
+    Map<String, dynamic>? currentUser = users.firstWhere(
+          (user) => user['alias'] == widget.alias,
+      orElse: () => {},
+    );
+
+    if (currentUser != null && currentUser['metodoPago'] != null) {
+      setState(() {
+        paymentMethods = List<Map<String, dynamic>>.from(currentUser['metodoPago']);
+      });
+    }
+  }
+
+  void _calculateTotal(int index) {
+    final plan = widget.plans[index];
+    if (index == 2) {
+      total = plan['price'] * calculateDays();
+    } else {
+      total = plan['price'] * calculateMonths();
+    }
+  }
 
   int calculateMonths() {
-    final days =
-        widget.dateRange.end.difference(widget.dateRange.start).inDays + 1;
-    return (days / 30)
-        .ceil(); // Redondear hacia arriba para cobrar mes completo
+    final days = widget.dateRange.end.difference(widget.dateRange.start).inDays + 1;
+    return (days / 30).ceil();
   }
 
   int calculateDays() {
     return widget.dateRange.end.difference(widget.dateRange.start).inDays + 1;
   }
 
-  void _calculateTotal(int index) {
-    final plan = widget.plans[index];
-    if (index == 2) {
-      // Plan diario
-      total = plan['price'] * calculateDays();
-    } else {
-      // Planes mensuales
-      total = plan['price'] * calculateMonths();
-    }
+  String _maskCreditCard(String number) {
+    if (number.length < 4) return number;
+    return '**** **** **** ${number.substring(number.length - 4)}';
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPlanSelection() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -62,8 +93,7 @@ class _PaymentPlanSelectorState extends State<PaymentPlanSelector> {
           final plan = entry.value;
           return RadioListTile<int>(
             title: Text(plan['name']),
-            subtitle: Text(
-                '\$${plan['price'].toStringAsFixed(2)} ${index == 2 ? "por día" : "por mes"}'),
+            subtitle: Text('\$${plan['price'].toStringAsFixed(2)} ${index == 2 ? "por día" : "por mes"}'),
             value: index,
             groupValue: selectedPlanIndex,
             onChanged: (int? value) {
@@ -71,6 +101,7 @@ class _PaymentPlanSelectorState extends State<PaymentPlanSelector> {
                 selectedPlanIndex = value;
                 if (value != null) {
                   _calculateTotal(value);
+                  widget.onPlanSelected(value);
                 }
               });
             },
@@ -79,20 +110,62 @@ class _PaymentPlanSelectorState extends State<PaymentPlanSelector> {
         if (selectedPlanIndex != null) ...[
           const SizedBox(height: 16),
           Text(
-            'Resumen del pago:',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(selectedPlanIndex == 2
-              ? '${calculateDays()} días x \$${widget.plans[selectedPlanIndex!]['price']}'
-              : '${calculateMonths()} mes(es) x \$${widget.plans[selectedPlanIndex!]['price']}'),
-          const SizedBox(height: 8),
-          Text(
             'Total a pagar: \$${total.toStringAsFixed(2)}',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPaymentMethodSelection() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Seleccione método de pago:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        const SizedBox(height: 16),
+        if (paymentMethods.isEmpty)
+          const Text('No hay métodos de pago registrados')
+        else
+          ...paymentMethods.asMap().entries.map((entry) {
+            final index = entry.key;
+            final method = entry.value;
+            return RadioListTile<int>(
+              title: Text('${method['nombreTarjetahabiente']}'),
+              subtitle: Text(_maskCreditCard(method['numeroTarjeta'])),
+              value: index,
+              groupValue: selectedPaymentMethodIndex,
+              onChanged: (int? value) {
+                setState(() {
+                  selectedPaymentMethodIndex = value;
+                  if (value != null) {
+                    widget.onPaymentMethodSelected(value);
+                  }
+                });
+              },
+            );
+          }).toList(),
+        const SizedBox(height: 16),
+        Text(
+          'Total a pagar: \$${total.toStringAsFixed(2)}',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          widget.showPaymentMethods ? _buildPaymentMethodSelection() : _buildPlanSelection(),
+        ],
+      ),
     );
   }
 }
@@ -212,95 +285,72 @@ class _HouseDetailState extends State<HouseDetail> {
   void _showPaymentPlanDialog() {
     if (_selectedDateRange == null) return;
 
+    bool showPaymentMethods = false;
+    int? selectedPlanIndex;
+    int? selectedPaymentMethodIndex;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Seleccionar Plan de Pago'),
-          content: PaymentPlanSelector(
-            plans: _house['planes'],
-            dateRange: _selectedDateRange!,
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Proceder al Pago'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _showCreditCardDialog();
-              },
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(showPaymentMethods ? 'Seleccionar Método de Pago' : 'Seleccionar Plan de Pago'),
+              content: PaymentPlanSelector(
+                plans: _house['planes'],
+                dateRange: _selectedDateRange!,
+                alias: widget.alias,
+                showPaymentMethods: showPaymentMethods, // Pasar el estado
+                onPlanSelected: (index) {
+                  setState(() {
+                    selectedPlanIndex = index;
+                  });
+                },
+                onPaymentMethodSelected: (index) {
+                  setState(() {
+                    selectedPaymentMethodIndex = index;
+                  });
+                },
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancelar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text(showPaymentMethods ? 'Proceder al Pago' : 'Siguiente'),
+                  onPressed: () {
+                    if (!showPaymentMethods) {
+                      if (selectedPlanIndex != null) {
+                        setState(() {
+                          showPaymentMethods = true;
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Por favor seleccione un plan')),
+                        );
+                      }
+                    } else {
+                      if (selectedPaymentMethodIndex != null) {
+                        Navigator.of(context).pop();
+                        _processPaymentAndRent();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Por favor seleccione un método de pago')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
-  }
-
-  void _showCreditCardDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Pago con Tarjeta'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Número de Tarjeta',
-                  hintText: '1234 5678 9012 3456',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Fecha de Vencimiento',
-                  hintText: 'MM/YY',
-                ),
-                keyboardType: TextInputType.datetime,
-              ),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'CVV',
-                  hintText: '123',
-                ),
-                keyboardType: TextInputType.number,
-                obscureText: true,
-              ),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Nombre en la Tarjeta',
-                  hintText: 'JOHN DOE',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Pagar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _processPaymentAndRent();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _processPaymentAndRent() {
+  }  void _processPaymentAndRent() {
     // Aquí iría la lógica de procesamiento del pago
     // Por ahora, solo mostraremos un mensaje de éxito y procederemos con la reservación
     ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intellihome/views/device_management.dart';
 import 'package:path_provider/path_provider.dart';
 import 'house_detail.dart';
 
@@ -84,6 +85,17 @@ class _HouseListState extends State<HouseList> {
     }
 
     return false;
+  }
+
+  void _navigateToDeviceManagement(BuildContext context, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) =>
+              DeviceManagement(houseIndex: index, house: houses[index])),
+    ).then((_) {
+      _loadHouses();
+    });
   }
 
   void _navigateToHouseDetail(
@@ -236,9 +248,14 @@ class _HouseListState extends State<HouseList> {
                                     color: Colors.white, fontSize: 16),
                               ),
                               Text(
-                                'Dispositivos activos: ${(house['dispositivos'] as List).where((d) => d['activo']).length}',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16),
+                                'Dispositivos IoT: ${house['dispositivos'].length}',
+                                style: TextStyle(color: Colors.white, fontSize: 16),
+                              ),
+                              SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    _navigateToDeviceManagement(context, index),
+                                child: Text('Administrar Dispositivos IoT'),
                               ),
                             ],
                           ),

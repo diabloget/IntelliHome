@@ -262,12 +262,14 @@ class _RegisterViewState extends State<RegisterView> {
       "fotoPerfil": _imageFile?.path ?? "",
       "estilosCasa": estilosSeleccionados,
       "tiposTransporte": transporteSeleccionados,
-      "metodoPago": {
-        "nombreTarjetahabiente": nombreTarjetahabiente,
-        "numeroTarjeta": numeroTarjeta,
-        "fechaValidez": fechaValidez,
-        "numeroVerificador": numeroVerificador
-      },
+      "metodoPago": [
+        {
+          "nombreTarjetahabiente": nombreTarjetahabiente,
+          "numeroTarjeta": numeroTarjeta,
+          "fechaValidez": fechaValidez,
+          "numeroVerificador": numeroVerificador
+        }
+      ],
       "rol": "user",
       "contrasena": withPassword ? contrasenaController.text : "" // Solo agregar contraseña si withPassword es true
     };

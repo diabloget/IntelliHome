@@ -7,12 +7,20 @@
     "fotoPerfil": "string",
     "estilosCasa": ["string"],
     "tiposTransporte": ["string"],
-    "metodoPago": {
-      "nombreTarjetahabiente": "string",
-      "numeroTarjeta": "string",
-      "fechaValidez": "string",
-      "numeroVerificador": "string"
-    },
+    "metodoPago": [
+      {
+        "nombreTarjetahabiente": "string",
+        "numeroTarjeta": "1111111111111111",
+        "fechaValidez": "07/04",
+        "numeroVerificador": "1111"
+      },
+      {
+        "nombreTarjetahabiente": "string",
+        "numeroTarjeta": "1111111111111111",
+        "fechaValidez": "07/04",
+        "numeroVerificador": "1234"
+      }
+    ],
     "rol": "user",
     "contrasena": "string"
   },
@@ -25,12 +33,20 @@
     "fotoPerfil": "string",
     "estilosCasa": ["string"],
     "tiposTransporte": ["string"],
-    "metodoPago": {
-      "nombreTarjetahabiente": "string",
-      "numeroTarjeta": "string",
-      "fechaValidez": "string",
-      "numeroVerificador": "string"
-    },
+    "metodoPago": [
+      {
+        "nombreTarjetahabiente": "1",
+        "numeroTarjeta": "1111111111111111",
+        "fechaValidez": "07/04",
+        "numeroVerificador": "1234"
+      },
+      {
+        "nombreTarjetahabiente": "string",
+        "numeroTarjeta": "1111111111111111",
+        "fechaValidez": "07/04",
+        "numeroVerificador": "1234"
+      }
+    ],
     "rol": "Admin",
     "contrasena": "TEC2024"
   }
